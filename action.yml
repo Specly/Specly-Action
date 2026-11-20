@@ -1,0 +1,48 @@
+name: Specly issue to spec
+description: Turns a vague GitHub issue into an agent-ready spec grounded in the repo, posted as one collapsed comment.
+author: Specly
+
+branding:
+  icon: file-text
+  color: blue
+
+inputs:
+  specly-token:
+    description: Your Specly access token, from a repository secret (e.g. secrets.SPECLY_TOKEN). Never logged or posted.
+    required: false
+  target:
+    description: The coding tool the spec is formatted for, one of claude-code, cursor, codex, vscode, gemini, generic. Defaults to the repo's .specly.json target, else claude-code.
+    required: false
+  model:
+    description: The model your coding agent runs, recorded in the spec (e.g. claude-sonnet-5-5). Defaults to the repo's .specly.json model.
+    required: false
+  trigger-label:
+    description: Adding this label to an issue runs Specly on it.
+    required: false
+    default: specly
+  command:
+    description: A comment starting with this word runs Specly (and carries answers to its questions).
+    required: false
+    default: /specly
+  allowed-associations:
+    description: Comma-separated comment author associations allowed to run the command on any issue. The issue's author may also run it once the issue is labelled.
+    required: false
+    default: OWNER,MEMBER,COLLABORATOR
+  path:
+    description: The folder to scan, relative to the workspace. Run actions/checkout first.
+    required: false
+    default: .
+  github-token:
+    description: Token used to read and write the issue comment. Needs issues write.
+    required: false
+    default: ${{ github.token }}
+
+outputs:
+  status:
+    description: What happened, one of skipped, refused, spec, questions, missing-token, failed.
+  comment-url:
+    description: The Specly comment's URL, when one was written.
+
+runs:
+  using: node24
+  main: dist/main/index.mjs

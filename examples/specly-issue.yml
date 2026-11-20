@@ -1,0 +1,51 @@
+# Example workflow: copy to .github/workflows/specly-issue.yml in YOUR repo.
+# It is not active in the Specly repo itself.
+#
+# Setup: add your Specly access token as the SPECLY_TOKEN repository secret
+# (Settings > Secrets and variables > Actions), and create a "specly" label.
+name: Specly issue to spec
+
+on:
+  issues:
+    types: [labeled, edited]
+  issue_comment:
+    types: [created, edited]
+
+# Least privilege: read the code, write one issue comment.
+permissions:
+  contents: read
+  issues: write
+
+# One run per issue at a time; a newer trigger replaces an older run.
+concurrency:
+  group: specly-issue-${{ github.event.issue.number }}
+  cancel-in-progress: true
+
+jobs:
+  specly:
+    # Issues only, never pull requests (so fork PR comments never get the
+    # secret), and only for events that can matter, so ordinary comments
+    # don't start a runner. The action re-checks all of this itself.
+    if: >-
+      ${{
+        !github.event.issue.pull_request &&
+        github.event.sender.type != 'Bot' &&
+        (
+          github.event_name == 'issues' ||
+          (github.event.action == 'created' && startsWith(github.event.comment.body, '/specly')) ||
+          (github.event.action == 'edited' && contains(github.event.comment.body, '<!-- specly:issue-to-spec -->'))
+        )
+      }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      # The default branch, never PR code; no token left in .git/config.
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: Specly/Specly-Action@main
+        with:
+          specly-token: ${{ secrets.SPECLY_TOKEN }}
+          target: claude-code # or cursor, codex, vscode, gemini, generic
+          trigger-label: specly
